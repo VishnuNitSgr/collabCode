@@ -1,0 +1,231 @@
+/* ================= GLOBAL ================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Roboto", "Helvetica Neue", sans-serif;
+}
+
+body {
+  background: #1a1a1d;
+  color: #eee;
+  overflow: hidden;
+}
+
+/* ================= JOIN PAGE ================= */
+.join-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.join-form {
+  background-color: #1f1f1f;
+  padding: 3rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  width: 360px;
+  text-align: center;
+}
+
+.join-form h1 {
+  font-size: 1.8rem;
+  color: #fff;
+  margin-bottom: 2rem;
+}
+
+.join-form input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: none;
+  border-radius: 12px;
+  background-color: #2c2c2c;
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.join-form input:focus {
+  outline: none;
+  box-shadow: 0 0 8px #667eea;
+}
+
+.join-form button {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.join-form button:hover {
+  background: linear-gradient(45deg, #5563c1, #5d3f91);
+}
+
+/* ================= EDITOR PAGE ================= */
+.editor-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+/* -------- SIDEBAR -------- */
+.sidebar {
+  width: 280px;
+  background-color: #1b1b1f;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border-right: 1px solid #333;
+}
+
+.sidebar .room-info {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.sidebar .room-info h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar .copy-button {
+  padding: 0.5rem 1rem;
+  background-color: #4a90e2;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.3s ease;
+}
+
+.sidebar .copy-button:hover {
+  background-color: #357abd;
+}
+
+.sidebar .copy-success {
+  font-size: 0.8rem;
+  color: #2ecc71;
+  margin-top: 0.5rem;
+}
+
+.sidebar h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  overflow-y: auto;
+  max-height: 250px;
+}
+
+.sidebar ul li {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.5rem;
+  font-size: 0.95rem;
+  background-color: #2c2c2c;
+  margin-bottom: 0.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sidebar ul li:hover {
+  background-color: #3a3a3a;
+}
+
+/* User Avatar */
+.sidebar ul li::before {
+  content: "";
+  display: inline-block;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background-color: #667eea;
+  margin-right: 0.75rem;
+}
+
+/* Typing animation */
+.sidebar .typing {
+  font-size: 0.85rem;
+  color: #f1c40f;
+  font-style: italic;
+  margin: 0.5rem 0 1rem 0;
+  text-align: center;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+/* Language selector */
+.sidebar select.language-selector {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 10px;
+  border: none;
+  background-color: #2c2c2c;
+  color: #fff;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+/* Leave button */
+.sidebar .leave-btn {
+  padding: 0.75rem;
+  background-color: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.sidebar .leave-btn:hover {
+  background-color: #c0392b;
+}
+
+/* -------- EDITOR WRAPPER -------- */
+.editor-wrapper {
+  flex-grow: 1;
+  display: flex;
+  background-color: #1e1e1e;
+}
+
+/* Monaco Editor fills the wrapper */
+.editor-wrapper .monaco-editor {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+/* ================= SCROLLBAR ================= */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1b1b1f;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #667eea;
+  border-radius: 3px;
+}
