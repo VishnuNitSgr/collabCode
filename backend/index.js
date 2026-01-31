@@ -2,7 +2,7 @@ import express from "express";
 import { Server } from "socket.io";
 import path from "path";
 import dotenv from "dotenv";
-
+import axios from "axios";
 dotenv.config();
 
 const app = express();
@@ -32,30 +32,20 @@ io.on("connection", (socket) => {
 
   // ================= JOIN ROOM =================
   socket.on("join", ({ roomId, userName }) => {
-    console.log("JOIN EVENT:", roomId, userName);
-
-    // Leave previous room
     if (currentRoom && rooms.has(currentRoom)) {
       socket.leave(currentRoom);
       rooms.get(currentRoom).delete(currentUser);
-
-      io.to(currentRoom).emit(
-        "userJoined",
-        Array.from(rooms.get(currentRoom))
-      );
+      io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom)));
     }
 
-    // Join new room
     currentRoom = roomId;
     currentUser = userName;
 
     socket.join(roomId);
-
     if (!rooms.has(roomId)) rooms.set(roomId, new Set());
     rooms.get(roomId).add(userName);
 
     io.to(roomId).emit("userJoined", Array.from(rooms.get(roomId)));
-    console.log("Current Room Users:", Array.from(rooms.get(roomId)));
   });
 
   // ================= CODE CHANGE =================
@@ -73,13 +63,29 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("languageUpdate", language);
   });
 
+  // ================= COMPILE CODE =================
+  socket.on("compileCode", async ({ roomId, code, language, version, stdin }) => {
+    try {
+      const response = await axios.post("https://emkc.org/api/v2/piston/execute", {
+        language,
+        version,
+        files: [{ content: code }],
+        stdin: stdin || "", // <-- Pass input here
+      });
+
+      const output = response.data.run.output;
+      io.to(roomId).emit("codeResponse", output);
+    } catch (err) {
+      io.to(roomId).emit("codeResponse", `Error: ${err.message}`);
+    }
+  });
+
   // ================= LEAVE ROOM =================
   socket.on("leaveRoom", () => {
     if (currentRoom && currentUser && rooms.has(currentRoom)) {
       rooms.get(currentRoom).delete(currentUser);
       io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom)));
       socket.leave(currentRoom);
-
       currentRoom = null;
       currentUser = null;
     }
@@ -91,7 +97,6 @@ io.on("connection", (socket) => {
       rooms.get(currentRoom).delete(currentUser);
       io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom)));
     }
-    console.log("User Disconnected:", socket.id);
   });
 });
 
@@ -99,7 +104,6 @@ io.on("connection", (socket) => {
 const __dirname = path.resolve();
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-// ✅ Node 24 safe catch-all route
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });

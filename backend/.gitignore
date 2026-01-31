@@ -1,6 +1,6 @@
 # backend/.gitignore
 node_modules/
-.env
+
 dist/
 *.log
 npm-debug.log*
