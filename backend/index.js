@@ -15,6 +15,17 @@ const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+function getLanguageId(language) {
+  const map = {
+    cpp: 54,
+    c: 50,
+    python: 71,
+    javascript: 63,
+    java: 62,
+  };
+  return map[language.toLowerCase()] || 54;
+}
+
 // ================= SOCKET.IO =================
 const io = new Server(server, {
   cors: {
@@ -23,12 +34,14 @@ const io = new Server(server, {
 });
 
 const rooms = new Map();
+const roomCode = new Map();
 
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
   let currentRoom = null;
   let currentUser = null;
+  let isCompiling = false;
 
   // ================= JOIN ROOM =================
   socket.on("join", ({ roomId, userName }) => {
@@ -46,10 +59,14 @@ io.on("connection", (socket) => {
     rooms.get(roomId).add(userName);
 
     io.to(roomId).emit("userJoined", Array.from(rooms.get(roomId)));
+    if (roomCode.has(roomId)) {
+      socket.emit("codeUpdate", roomCode.get(roomId));
+    }
   });
 
   // ================= CODE CHANGE =================
   socket.on("codeChange", ({ roomId, code }) => {
+    roomCode.set(roomId, code);
     socket.to(roomId).emit("codeUpdate", code);
   });
 
@@ -65,18 +82,41 @@ io.on("connection", (socket) => {
 
   // ================= COMPILE CODE =================
   socket.on("compileCode", async ({ roomId, code, language, version, stdin }) => {
+    if (isCompiling) return;
+    isCompiling = true;
     try {
-      const response = await axios.post("https://emkc.org/api/v2/piston/execute", {
-        language,
-        version,
-        files: [{ content: code }],
-        stdin: stdin || "", // <-- Pass input here
-      });
+      const response = await axios.post(
+        "https://api.jdoodle.com/v1/execute",
+        {
+          script: code,
+          language: mapLanguage(language),
+          versionIndex: "0",
+          stdin: stdin || "",
+          clientId: process.env.JDOODLE_CLIENT_ID,
+          clientSecret: process.env.JDOODLE_CLIENT_SECRET,
+        }
+      );
 
-      const output = response.data.run.output;
-      io.to(roomId).emit("codeResponse", output);
+      const { output, statusCode, memory, cpuTime } = response.data;
+
+      let finalOutput = output || "No output";
+
+      if (finalOutput.toLowerCase().includes("error")) {
+        finalOutput = "❌ Error:\n" + finalOutput;
+      }
+
+      io.to(roomId).emit(
+        "codeResponse",
+        `Output:\n${finalOutput}\n\nStatus: ${statusCode}\nTime: ${cpuTime}s\nMemory: ${memory}KB`
+      );
     } catch (err) {
-      io.to(roomId).emit("codeResponse", `Error: ${err.message}`);
+      console.error("Compile Error:", err.response?.data || err.message);
+      io.to(roomId).emit(
+        "codeResponse",
+        `Error: ${err.response?.data?.message || err.message}`
+      );
+    } finally {
+      isCompiling = false;
     }
   });
 
@@ -100,10 +140,13 @@ io.on("connection", (socket) => {
   });
 });
 
-// ================= FRONTEND SERVE =================
-const __dirname = path.resolve();
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
-app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-});
+function mapLanguage(language) {
+  const map = {
+    cpp: "cpp17",
+    c: "c",
+    python: "python3",
+    javascript: "nodejs",
+    java: "java",
+  };
+  return map[language.toLowerCase()] || "cpp17";
+}
