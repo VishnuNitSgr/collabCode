@@ -30,9 +30,9 @@ function getLanguageId(language) {
 const io = new Server(server, {
   cors: {
     origin: "*",
+    methods: ["GET", "POST"]
   },
 });
-
 const rooms = new Map();
 const roomCode = new Map();
 
