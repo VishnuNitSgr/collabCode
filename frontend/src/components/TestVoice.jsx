@@ -1,16 +1,25 @@
 import { useEffect } from "react";
 import { io } from "socket.io-client";
-import dotenv from "dotenv";
 
-dotenv.config();
-const socket = io(process.env.VITE_BACKEND_URL);
+const socket = io("http://localhost:5500");
 
 export default function TestVoice() {
   useEffect(() => {
+    let isStarted = false;
     const peers = {};
+    const iceQueue = {};
 
     async function start() {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (isStarted) return;
+      isStarted = true;
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        console.log("MIC PERMISSION ERROR:", err);
+        alert("Please allow microphone access to use voice chat");
+        return;
+      }
 
       socket.emit("join-voice", "room1");
 
@@ -34,28 +43,63 @@ export default function TestVoice() {
       socket.on("offer", async ({ from, offer }) => {
         const pc = createPeer(from, stream);
 
-        await pc.setRemoteDescription(offer);
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
+        // prevent duplicate or invalid state
+        if (pc.signalingState !== "stable") {
+          return;
+        }
 
-        socket.emit("answer", { target: from, answer });
+        try {
+          await pc.setRemoteDescription(offer);
+
+          if (pc.signalingState !== "have-remote-offer") return;
+
+          const answer = await pc.createAnswer();
+
+          // double check state before setting
+          if (pc.signalingState !== "have-remote-offer") return;
+
+          await pc.setLocalDescription(answer);
+
+          socket.emit("answer", { target: from, answer });
+        } catch (err) {
+          console.log("Offer handling skipped due to state change:", err);
+        }
       });
 
       socket.on("answer", async ({ from, answer }) => {
         const pc = peers[from];
-        if (pc && pc.signalingState !== "stable") {
-          await pc.setRemoteDescription(answer);
+        if (!pc) return;
+
+        if (pc.currentRemoteDescription) {
+          return; // already set, ignore duplicate
+        }
+
+        await pc.setRemoteDescription(answer);
+
+        // flush queued ICE candidates
+        if (iceQueue[from]) {
+          for (const candidate of iceQueue[from]) {
+            await pc.addIceCandidate(candidate);
+          }
+          iceQueue[from] = [];
         }
       });
 
       socket.on("ice-candidate", async ({ from, candidate }) => {
         const pc = peers[from];
         if (pc && candidate) {
-          await pc.addIceCandidate(candidate);
+          if (pc.remoteDescription) {
+            await pc.addIceCandidate(candidate);
+          } else {
+            if (!iceQueue[from]) iceQueue[from] = [];
+            iceQueue[from].push(candidate);
+          }
         }
       });
 
       function createPeer(userId, stream) {
+        if (peers[userId]) return peers[userId];
+
         const pc = new RTCPeerConnection({
           iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
         });
@@ -88,6 +132,13 @@ export default function TestVoice() {
     }
 
     start();
+
+    return () => {
+      socket.off("user-joined-voice");
+      socket.off("offer");
+      socket.off("answer");
+      socket.off("ice-candidate");
+    };
   }, []);
 
   return <div>🎤 Testing Voice Chat...</div>;
