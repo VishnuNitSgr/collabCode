@@ -2,6 +2,7 @@ import "./App.css";
 import { useState, useEffect } from "react";
 import io from "socket.io-client";
 import Editor from "@monaco-editor/react";
+import VoiceChat from "./components/TestVoice";
 
 const socket = io(import.meta.env.VITE_BACKEND_URL);
 
@@ -209,7 +210,7 @@ const App = () => {
           Leave Room
         </button>
       </div>
-
+      <VoiceChat roomId={roomId} />
       <div className="editor-wrapper" style={{ flexDirection: "column" }}>
         <Editor
           height="65%"

@@ -131,11 +131,34 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ================= VOICE SIGNALING =================
+  socket.on("join-voice", (roomId) => {
+    socket.join(roomId);
+    socket.to(roomId).emit("user-joined-voice", socket.id);
+  });
+
+  socket.on("offer", ({ target, offer }) => {
+    io.to(target).emit("offer", { from: socket.id, offer });
+  });
+
+  socket.on("answer", ({ target, answer }) => {
+    io.to(target).emit("answer", { from: socket.id, answer });
+  });
+
+  socket.on("ice-candidate", ({ target, candidate }) => {
+    io.to(target).emit("ice-candidate", { from: socket.id, candidate });
+  });
+
+  socket.on("leave-voice", (roomId) => {
+    socket.to(roomId).emit("user-left-voice", socket.id);
+  });
+
   // ================= DISCONNECT =================
   socket.on("disconnect", () => {
     if (currentRoom && currentUser && rooms.has(currentRoom)) {
       rooms.get(currentRoom).delete(currentUser);
       io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom)));
+      socket.broadcast.emit("user-left-voice", socket.id);
     }
   });
 });
